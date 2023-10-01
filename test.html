@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truck Animations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <style>
+        /* Add CSS styles if needed */
+    </style>
+</head>
+<body>
+    <div id="map" style="width: 100%; height: 500px;"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([20.5937, 78.9629], 5); // Centered on India
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        var cities = [
+            { name: "Bhopal", coordinates: [23.2599, 77.4126], iconUrl: 'bhopal-truck.png' },
+            { name: "Chennai", coordinates: [13.0827, 80.2707], iconUrl: 'chennai-truck.png' },
+            { name: "Bangalore", coordinates: [12.9716, 77.5946], iconUrl: 'bangalore-truck.png' },
+            { name: "Goa", coordinates: [15.2993, 74.1240], iconUrl: 'goa-truck.png' },
+            { name: "Coimbatore", coordinates: [11.0168, 76.9558], iconUrl: 'coimbatore-truck.png' }
+        ];
+
+        var colors = ['red', 'yellow', 'blue', 'purple', 'green'];
+
+        function createTruck(city, color) {
+            var line = L.polyline([], {
+                color: color,
+                weight: 2,
+                dashArray: '5, 10', // Specify the dash pattern here
+            }).addTo(map);
+
+            var truckIcon = L.icon({
+                iconUrl: city.iconUrl, // Use the unique truck image URL specified for each city
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+            });
+
+            var truck = L.marker(city.coordinates, { icon: truckIcon }).addTo(map);
+
+            var animationDuration = 4000; // 4 seconds for each leg of the journey
+            var currentIndex = cities.indexOf(city);
+            var nextIndex = (currentIndex + 1) % cities.length;
+            var totalAnimationTime = 0; // Track the total animation time
+
+            function animateTruck() {
+                var currentCity = cities[currentIndex];
+                var nextCity = cities[nextIndex];
+
+                var startTime = new Date().getTime();
+                var endTime = startTime + animationDuration;
+
+                function step() {
+                    var now = new Date().getTime();
+                    var progress = Math.min(1, (now - startTime) / animationDuration);
+
+                    var latLng = [
+                        currentCity.coordinates[0] - (currentCity.coordinates[0] - nextCity.coordinates[0]) * progress,
+                        currentCity.coordinates[1] - (currentCity.coordinates[1] - nextCity.coordinates[1]) * progress
+                    ];
+
+                    line.addLatLng(latLng);
+                    truck.setLatLng(latLng);
+
+                    if (now < endTime) {
+                        requestAnimationFrame(step);
+                    } else {
+                        currentIndex = nextIndex;
+                        nextIndex = (nextIndex + 1) % cities.length;
+                        currentCity = cities[currentIndex];
+                        nextCity = cities[nextIndex];
+
+                        line.setLatLngs([]); // Clear the line path
+                        line.addLatLng(currentCity.coordinates);
+
+                        totalAnimationTime += animationDuration;
+
+                        // Check if the total animation time has reached 20 seconds
+                        if (totalAnimationTime < 20000) {
+                            animateTruck(); // Move to the next city
+                        }
+                    }
+                }
+
+                step();
+            }
+
+            animateTruck();
+        }
+
+        // Create and start animations for each city
+        for (var i = 0; i < cities.length; i++) {
+            createTruck(cities[i], colors[i]);
+        }
+    </script>
+</body>
+</html>
